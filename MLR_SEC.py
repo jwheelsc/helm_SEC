@@ -40,7 +40,7 @@ from scipy.ndimage import uniform_filter1d
 
 
 # %% read in glacier margin coordinates and elevation as well as ice thickness from radar survery
-data = pd.read_csv(r'C:\Users\jcrompto\Documents\remote_sensing\Q_projects\Helm\data_frame_all.csv')
+data = pd.read_csv('data_frame_all.csv')
 data = data[data['type'] == 'ground']
 
 x = np.round(data['east']).to_numpy()
@@ -58,7 +58,7 @@ max_y = y.max()
 bounds = [min_x, min_y, max_x, max_y]
 
 # %% load the mask created from 2025 surface from polygon shapefile generated in Q
-filename = r'C:/Users/jcrompto/Documents/remote_sensing/Q_projects/Helm/marg_25.tif'
+filename = 'marg_25.tif'
 # rast_dem = gu.Raster(filename,downsample=10)
 rast_dem_marg = gu.Raster(filename)
 rast_dem_marg.crop([min_x, min_y, max_x, max_y])
@@ -67,7 +67,7 @@ rast_dat_marg = rast_dem_marg.data
 # %% Compute a slope and aspect from 10m downsampled DEMs. grid cells are only
 # considered for years prior to 2025 from within 2025 glacier margin
 
-filename = r'C:/Users/jcrompto/Documents/remote_sensing/lidar/Helm/DEM_2020.tif'
+filename = 'DEM_2020.tif'
 rast_dem20 = gu.Raster(filename)
 rast_dem20.crop([min_x, min_y, max_x, max_y])
 rast_dat20 = rast_dem20.data
@@ -83,7 +83,7 @@ s20_rn = s20_r[ravel_mask]; a20_rn = a20_r[ravel_mask]; z20_rn = z20_r[ravel_mas
 # fig,ax = plt.subplots(figsize=(18,18))
 # ax.imshow(slope20,cmap = 'jet')
 
-filename = r'C:/Users/jcrompto/Documents/remote_sensing/lidar/Helm/DEM_2021.tif'
+filename = 'DEM_2021.tif'
 rast_dem21 = gu.Raster(filename)
 rast_dem21.crop([min_x, min_y, max_x, max_y])
 rast_dat21 = rast_dem21.data
@@ -96,7 +96,7 @@ s21_r = slope21.ravel(); a21_r = aspect21.ravel(); z21_r = z21.ravel()
 s21_rn = s21_r[ravel_mask]; a21_rn = a21_r[ravel_mask]; z21_rn = z21_r[ravel_mask];
 
 
-filename = r'C:/Users/jcrompto/Documents/remote_sensing/lidar/Helm/DEM_2022.tif'
+filename = 'DEM_2022.tif'
 rast_dem22 = gu.Raster(filename)
 rast_dem22.crop([min_x, min_y, max_x, max_y])
 rast_dat22 = rast_dem22.data
@@ -111,7 +111,7 @@ s22_rn = s22_r[ravel_mask]; a22_rn = a22_r[ravel_mask]; z22_rn = z22_r[ravel_mas
 # fig,ax = plt.subplots(figsize=(18,18))
 # ax.imshow(z22,cmap = 'jet')
 
-filename = r'C:/Users/jcrompto/Documents/remote_sensing/lidar/Helm/DEM_2023.tif'
+filename = 'DEM_2023.tif'
 rast_dem23 = gu.Raster(filename)
 rast_dem23.crop([min_x, min_y, max_x, max_y])
 rast_dat23 = rast_dem23.data
@@ -126,7 +126,7 @@ s23_rn = s23_r[ravel_mask]; a23_rn = a23_r[ravel_mask]; z23_rn = z23_r[ravel_mas
 # fig,ax = plt.subplots(figsize=(18,18))
 # ax.imshow(z23,cmap = 'jet')
 
-filename = r'C:/Users/jcrompto/Documents/remote_sensing/lidar/Helm/DEM_2024.tif'
+filename = 'Helm/DEM_2024.tif'
 rast_dem24 = gu.Raster(filename)
 rast_dem24.crop([min_x, min_y, max_x, max_y])
 rast_dat24 = rast_dem24.data
@@ -145,7 +145,7 @@ s24_rn = s24_r[ravel_mask]; a24_rn = a24_r[ravel_mask]; z24_rn = z24_r[ravel_mas
 
 # %% import the dh maps 
 
-filename = r'C:/Users/jcrompto/Documents/remote_sensing/lidar/Helm/dh_20_21.tif'
+filename = 'dh_20_21.tif'
 rast_dh2021 = gu.Raster(filename)
 rast_dh2021.crop([min_x, min_y, max_x, max_y])
 rast_dh2021 = rast_dh2021.data
@@ -159,7 +159,7 @@ cbar = fig.colorbar(art, ax=ax)
 cbar.set_label('dh (m)')
 plt.title('dh 21/20')
 
-filename = r'C:/Users/jcrompto/Documents/remote_sensing/lidar/Helm/dh_21_22.tif'
+filename = 'dh_21_22.tif'
 rast_dh2122 = gu.Raster(filename)
 rast_dh2122.crop([min_x, min_y, max_x, max_y])
 rast_dh2122 = rast_dh2122.data
@@ -173,7 +173,7 @@ cbar = fig.colorbar(art, ax=ax)
 cbar.set_label('dh (m)')
 plt.title('dh 22/21')
 
-filename = r'C:/Users/jcrompto/Documents/remote_sensing/lidar/Helm/dh_22_23.tif'
+filename = 'dh_22_23.tif'
 rast_dh2223 = gu.Raster(filename)
 rast_dh2223.crop([min_x, min_y, max_x, max_y])
 rast_dh2223 = rast_dh2223.data
@@ -187,7 +187,7 @@ cbar = fig.colorbar(art, ax=ax)
 cbar.set_label('dh (m)')
 plt.title('dh 23/22')
 
-filename = r'C:/Users/jcrompto/Documents/remote_sensing/lidar/Helm/dh_23_24.tif'
+filename = 'dh_23_24.tif'
 rast_dh2324 = gu.Raster(filename)
 rast_dh2324.crop([min_x, min_y, max_x, max_y])
 rast_dh2324 = rast_dh2324.data
@@ -201,7 +201,7 @@ cbar = fig.colorbar(art, ax=ax)
 cbar.set_label('dh (m)')
 plt.title('dh 24/23')
 
-filename = r'C:/Users/jcrompto/Documents/remote_sensing/lidar/Helm/dh_24_25_w.tif' # this is the winter field
+filename = 'dh_24_25_w.tif' # this is the winter field
 rast_dh2425 = gu.Raster(filename)
 rast_dh2425.crop([min_x, min_y, max_x, max_y])
 rast_dh2425 = rast_dh2425.data
@@ -230,7 +230,7 @@ ave_melt = (rast_dh2021*rast_dat_marg+rast_dh2122*rast_dat_marg+rast_dh2223*rast
 # plt.imshow(ave_melt)
 
 # %% load this ice thickness data
-filename = r'C:/Users/jcrompto/Documents/remote_sensing/Q_projects/Helm/helm_H_IPR.tif'
+filename = 'helm_H_IPR.tif'
 rast_H = gu.Raster(filename)
 rast_H.crop([min_x, min_y, max_x, max_y])
 rast_H = rast_H.data
@@ -238,7 +238,7 @@ rast_H = rast_H*rast_dat_marg
 
 # %% read in the masked yearly shortwave radiation fields
 plt.close('all')
-filename = r'C:\Users\jcrompto\Documents\remote_sensing\Q_projects\Helm\2021_summer_insol_mean.tif'
+filename = '2021_summer_insol_mean.tif'
 rast_SINM_21 = gu.Raster(filename)
 rast_SINM_21.crop([min_x, min_y, max_x, max_y])
 SINM_21_dat = rast_SINM_21.data
@@ -254,7 +254,7 @@ art=ax.imshow(SINM_21_dat_field)
 cbar = fig.colorbar(art, ax=ax)
 plt.title('summer masked shortwave 2021')
 
-filename = r'C:\Users\jcrompto\Documents\remote_sensing\Q_projects\Helm\2022_summer_insol_mean.tif'
+filename = '2022_summer_insol_mean.tif'
 rast_SINM_22 = gu.Raster(filename)
 rast_SINM_22.crop([min_x, min_y, max_x, max_y])
 SINM_22_dat = rast_SINM_22.data
@@ -267,7 +267,7 @@ art=ax.imshow(SINM_22_dat_field)
 cbar = fig.colorbar(art, ax=ax)
 plt.title('summer masked shortwave 2022')
 
-filename = r'C:\Users\jcrompto\Documents\remote_sensing\Q_projects\Helm\2023_summer_insol_mean.tif'
+filename = '2023_summer_insol_mean.tif'
 rast_SINM_23 = gu.Raster(filename)
 rast_SINM_23.crop([min_x, min_y, max_x, max_y])
 SINM_23_dat = rast_SINM_23.data
@@ -280,7 +280,7 @@ art=ax.imshow(SINM_23_dat_field)
 cbar = fig.colorbar(art, ax=ax)
 plt.title('summer masked shortwave 2023')
 
-filename = r'C:\Users\jcrompto\Documents\remote_sensing\Q_projects\Helm\2024_summer_insol_mean.tif'
+filename = '2024_summer_insol_mean.tif'
 rast_SINM_24 = gu.Raster(filename)
 rast_SINM_24.crop([min_x, min_y, max_x, max_y])
 SINM_24_dat = rast_SINM_24.data
@@ -296,7 +296,7 @@ plt.title('summer masked shortwave 2024')
 # %% read in snow depth fields
 plt.close('all')
 
-file_path = r'C:/Users/jcrompto/Documents/data/mass_balance/Helm/Helm_snow_depth.csv'
+file_path = 'Helm_snow_depth.csv'
 df = pd.read_csv(file_path)
 yr = df['year']
 zs = df['z']
@@ -368,7 +368,7 @@ cbar.set_label('dh (m)')
 plt.title('snow depth field 2024')
 
 # %% import the era5 temp data at 1550m elevation from nearest grid cell
-file_path = r'C:/Users/jcrompto/Documents/code/python_scripts/mass_balance/helm_era5_2000_2024.xlsx'
+file_path = 'helm_era5_2000_2024.xlsx'
 df = pd.read_excel(file_path)
 datetimes = df.timestamp
 temperature = df.temperature-273.15
@@ -818,10 +818,8 @@ ice_H = rast_H.data
 ice_H[ice_H==255]=0
 # pdd_ave = pdd(surfc,temp,datetimes)
 pdd_ave = avePDD_forward
-# ice_H.set_fill_value(np.nan)
 nRows = int(2)
 nCols = int(6)
-# lenSim = nRows**2
 lenSim = nCols*nRows
 yr_sim = np.arange(lenSim+1)+2024
 V = np.zeros(lenSim+1)
@@ -843,6 +841,7 @@ for yr in np.arange(lenSim):
     fig,ax = plt.subplots(figsize=(18,18))
     ax.imshow(ice_H,cmap = 'jet')
     A[yr+1] = np.sum(np.multiply((ice_H!=0),~np.isnan(ice_H)))*100
+    
 # %% functions 
 
 def slope_aspect(array):
@@ -860,16 +859,14 @@ def hillshade(slp_dat,aspect,azimuth,angle_altitude):
     return (255*(shaded + 1)/2)
 
 def compute_r_squared(observed, modeled):
-    # Flatten in case inputs are 2D or higher
+
     obs = observed.flatten()
     mod = modeled.flatten()
     
-    # Mask invalid or nan values (optional but good practice)
     valid_mask = ~np.isnan(obs) & ~np.isnan(mod)
     obs = obs[valid_mask]
     mod = mod[valid_mask]
 
-    # Compute R²
     ss_res = np.sum((obs - mod) ** 2)
     ss_tot = np.sum((obs - np.mean(obs)) ** 2)
     r_squared = 1 - (ss_res / ss_tot)
@@ -882,19 +879,16 @@ def standardize_columns(X):
     return X_std, means, stds
 
 def renormalize_beta_sklearn(model, X_mean, X_std, y_mean, y_std):
-    # model.coef_ is for standardized inputs and outputs
     beta_std = model.coef_.flatten()
     intercept_std = model.intercept_
 
-    # Denormalize coefficients
     beta_denorm = beta_std * (y_std / X_std)
     intercept_denorm = y_mean - np.sum(beta_denorm * X_mean)
     
     return intercept_denorm, beta_denorm
 
 def pdd(zMap,temp,datetimes):
-    #% PDD from smooth curve
-    
+
     datetime_array = []
     for i in np.arange(11):
         datetime_array.append(datetime(year = 2014+i, month = 9, day = 30))
@@ -914,7 +908,7 @@ def pdd(zMap,temp,datetimes):
             t_ij = t_ij + lapse_tzj
             t_cube[:,:,i] = t_ij
        
-    pdd_ave = np.nanmean(t_cube,2)
+    pdd_ave = np.nansum(t_cube,2)/10
     plt.figure()
     plt.imshow(pdd_ave)
     return pdd_ave
@@ -923,6 +917,6 @@ def get_jet(theMap):
     base_cmap = plt.get_cmap(theMap)
     num_bins = 180
     color_list = base_cmap(np.linspace(0, 1, num_bins))
-    color_list[0] = [1, 1, 1, 0]  # RGBA for white
+    color_list[0] = [1, 1, 1, 0] 
     plasma_zero_cmap = mcolors.ListedColormap(color_list)
     return plasma_zero_cmap
