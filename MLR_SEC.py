@@ -376,7 +376,7 @@ temperature = df.temperature-273.15
 # %% compute the PDD for each year of 2021--2024 with the ravelled elevation surface
 # and the ERA5 land temperature between the dates of the lidar acquisition periods
 
-lapse_t = -6.5/1000 #set the desired lapse rate
+lapse_t = -5.8/1000 #set the desired lapse rate
 
 start_t = datetime(year = 2020, month = 1, day = 1, hour = 0)
 end_t = datetime(year = 2024, month = 1, day = 1, hour = 0)
@@ -436,7 +436,7 @@ ac24 = datetime(year = 2024, month = 9, day = 16)
 datetime_array = [ac20, ac21, ac22, ac23, ac24]
 
     
-lapse_t = -6.5/1000
+lapse_t = -5.8/1000
 t_cube = np.zeros((np.shape(zMap)[0],np.shape(zMap)[1],10))
 t_tot = np.zeros_like(zMap)
 for i in np.arange(4):
@@ -461,7 +461,7 @@ datetime_array = []
 for i in np.arange(11):
     datetime_array.append(datetime(year = 2014+i, month = 9, day = 30))
     
-lapse_t = -6.5/1000
+lapse_t = -5.8/1000
 t_forward_cube = np.zeros((np.shape(zMap)[0],np.shape(zMap)[1],10))
 t_tot = np.zeros_like(zMap)
 for i in np.arange(10):
@@ -842,6 +842,50 @@ for yr in np.arange(lenSim):
     ax.imshow(ice_H,cmap = 'jet')
     A[yr+1] = np.sum(np.multiply((ice_H!=0),~np.isnan(ice_H)))*100
     
+# %%
+plt.close('all')
+
+# pdd_ave = pdd(surfc,temp,datetimes)
+pdd_ave = avePDD_forward
+
+delArr = np.arange(start=0.7,stop=1.3,step=0.01)
+
+countMtx = np.zeros((len(delArr),len(delArr)))
+
+for i in np.arange(len(delArr)):
+    SND_loop = aveSND_field.data*delArr[i]
+    
+    for j in np.arange(len(delArr)):
+        pdd_loop = pdd_ave*delArr[j]
+        
+        surfc = rast_dat24_mask.data
+        ice_H = np.copy(rast_H)
+        ice_H = rast_H.data
+        ice_H[ice_H==255]=0
+        count = 0
+        A = np.sum(np.multiply((ice_H!=0),~np.isnan(ice_H)))*100
+        while A>0:
+            slope_yr,aspect_yr=slope_aspect(surfc)
+            mask_arr = (slope_yr!=0).astype('int')
+            # pdd_ave = pdd(surfc,temp,datetimes)
+            SM = B0 + BS*slope_yr.data + BA*aspect_yr.data + BPD*pdd_loop+ BSM*aveSINM_field.data + BAC*SND_loop
+            surfc = (surfc+SM)*mask_arr
+            ice_H = (ice_H+SM)*mask_arr
+            ice_H[ice_H<=0]=np.nan
+            A = np.sum(np.multiply((ice_H!=0),~np.isnan(ice_H)))*100
+            count += 1
+            # print(A)
+        countMtx[i,j]=count
+        # sys.exit()
+
+plt.close('all')
+fig,ax = plt.subplots(figsize=(18,18))
+art=ax.imshow(np.flipud(countMtx),extent=[delArr[0], delArr[-1], delArr[0], delArr[-1]])
+plt.xlabel('$\Delta$ T')
+plt.ylabel('$\Delta$ P')                            
+cbar = fig.colorbar(art, ax=ax)
+# cbar.set_label('dh (m)')
+plt.title('years until gone')
 # %% functions 
 
 def slope_aspect(array):
