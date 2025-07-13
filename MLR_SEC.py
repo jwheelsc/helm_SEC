@@ -126,7 +126,7 @@ s23_rn = s23_r[ravel_mask]; a23_rn = a23_r[ravel_mask]; z23_rn = z23_r[ravel_mas
 # fig,ax = plt.subplots(figsize=(18,18))
 # ax.imshow(z23,cmap = 'jet')
 
-filename = 'Helm/DEM_2024.tif'
+filename = 'DEM_2024.tif'
 rast_dem24 = gu.Raster(filename)
 rast_dem24.crop([min_x, min_y, max_x, max_y])
 rast_dat24 = rast_dem24.data
@@ -545,6 +545,8 @@ BPD = model.coef_[2]
 BSM = model.coef_[3]
 BAC = model.coef_[4]
 
+covX = np.corr(X.T)
+
 # %% compute statistical significance of beta values with standardized variables
 X_std, X_mean, X_std_vals = standardize_columns(X)
 Y_std, y_mean, y_std = standardize_columns(Y.reshape(-1, 1))
@@ -555,6 +557,8 @@ model = sm.OLS(Y_std, X_with_const)
 results = model.fit()
 
 print(results.summary())
+
+corX = np.cov(X_std.T)
 
 # %% apply coefficients to each year of raster data
 
@@ -846,17 +850,24 @@ for yr in np.arange(lenSim):
 plt.close('all')
 
 # pdd_ave = pdd(surfc,temp,datetimes)
+surfc = rast_dat24_mask.data
+
 pdd_ave = avePDD_forward
 
 delArr = np.arange(start=0.7,stop=1.3,step=0.01)
 
 countMtx = np.zeros((len(delArr),len(delArr)))
+ELA = np.zeros((len(delArr),len(delArr)))
+
+slope_yr,aspect_yr=slope_aspect(surfc)
 
 for i in np.arange(len(delArr)):
     SND_loop = aveSND_field.data*delArr[i]
+    # SND_loop = aveSND_field.data*1
     
     for j in np.arange(len(delArr)):
         pdd_loop = pdd_ave*delArr[j]
+        # pdd_loop = pdd_ave*0.8
         
         surfc = rast_dat24_mask.data
         ice_H = np.copy(rast_H)
@@ -864,28 +875,60 @@ for i in np.arange(len(delArr)):
         ice_H[ice_H==255]=0
         count = 0
         A = np.sum(np.multiply((ice_H!=0),~np.isnan(ice_H)))*100
-        while A>0:
-            slope_yr,aspect_yr=slope_aspect(surfc)
-            mask_arr = (slope_yr!=0).astype('int')
-            # pdd_ave = pdd(surfc,temp,datetimes)
-            SM = B0 + BS*slope_yr.data + BA*aspect_yr.data + BPD*pdd_loop+ BSM*aveSINM_field.data + BAC*SND_loop
-            surfc = (surfc+SM)*mask_arr
-            ice_H = (ice_H+SM)*mask_arr
-            ice_H[ice_H<=0]=np.nan
-            A = np.sum(np.multiply((ice_H!=0),~np.isnan(ice_H)))*100
-            count += 1
-            # print(A)
-        countMtx[i,j]=count
+        
+        srf_old = surfc.ravel()
+        mask_arr = (slope_yr!=0).astype('int')
+        # pdd_ave = pdd(surfc,temperature,datetimes)
+        SM = B0 + BS*slope_yr.data + BA*aspect_yr.data + BPD*pdd_loop+ BSM*aveSINM_field.data + BAC*SND_loop
+        surfc = (surfc+SM)*mask_arr
+        ice_H = (ice_H+SM)*mask_arr
+        ice_H[ice_H<=0]=np.nan
+        A = np.sum(np.multiply((ice_H!=0),~np.isnan(ice_H)))*100
+        srf_new = surfc.ravel()
+        dh_m = srf_new-srf_old
+        nanMsk = ~np.isnan(srf_new)
+        y = dh_m[nanMsk]
+        x = srf_new[nanMsk]
+        coeffs = np.polyfit(x, y, deg=1)
+        poly = np.poly1d(coeffs)
+        x_mod = np.array([1750, 2300])
+        SEC_grad = poly(x_mod)
+        
+        # plt.close('all')
+        # fig,ax=plt.subplots(figsize=(18,18))
+        # ax.plot(x,y,'.')
+        # ax.plot(x_mod,SEC_grad)
+        # plt.ylim([-6,2])
+        # plt.xlim([1700, 2400])
+        # plt.grid()
+        # plt.ylabel('Elevation change (m)')
+        # plt.xlabel('Elevation (m)')
+        # plt.title(f'delta = PDD*{delArr[j]:.2f}, delta = T*{delArr[i]:.2f}')
+        # fig.savefig(r'C:\Users\jcrompto\Documents\code\python_scripts\mass_balance\figures\ELA_extrap.png')
+        ELA[i,j] = -coeffs[1]/coeffs[0]
+
+        # count += 1
+        # sys.exit()
+        # print(A)
+        # countMtx[i,j]=count
         # sys.exit()
 
+
+# %% 
 plt.close('all')
 fig,ax = plt.subplots(figsize=(18,18))
-art=ax.imshow(np.flipud(countMtx),extent=[delArr[0], delArr[-1], delArr[0], delArr[-1]])
+art=ax.imshow(np.flipud(ELA),extent=[delArr[0], delArr[-1], delArr[0], delArr[-1]])
+ax.contour((ELA),extent=[delArr[0], delArr[-1], delArr[0], delArr[-1]],colors='red')
+level = 2160
+contour = ax.contour((ELA),extent=[delArr[0], delArr[-1], delArr[0], delArr[-1]],levels = [level],colors='black',linewidth=2)
+# ax.clabel(contours, fmt={level: f'Level {level:.2f}'}, colors='red')
+
 plt.xlabel('$\Delta$ T')
-plt.ylabel('$\Delta$ P')                            
+plt.ylabel('$\Delta$ PDD')                            
 cbar = fig.colorbar(art, ax=ax)
-# cbar.set_label('dh (m)')
-plt.title('years until gone')
+cbar.set_label('Elevation of net zero balance (m)')
+plt.title('black line = elevation of top of glacier')
+fig.savefig(r'C:\Users\jcrompto\Documents\code\python_scripts\mass_balance\figures\ELA_contour.png')
 # %% functions 
 
 def slope_aspect(array):
