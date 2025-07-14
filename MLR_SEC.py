@@ -821,7 +821,9 @@ ice_H = np.copy(rast_H)
 ice_H = rast_H.data
 ice_H[ice_H==255]=0
 # pdd_ave = pdd(surfc,temp,datetimes)
-pdd_ave = avePDD_forward
+# pdd_ave = avePDD_forward
+pdd_spline = pdd_ave_spline(surfc,temperature,datetimes)
+pdd_ave = spline(surfc)
 nRows = int(2)
 nCols = int(6)
 lenSim = nCols*nRows
@@ -835,8 +837,8 @@ ice_H_mtx[:,:,0]=ice_H
 for yr in np.arange(lenSim):
     slope_yr,aspect_yr=slope_aspect(surfc)
     mask_arr = (slope_yr!=0).astype('int')
-    # pdd_ave = pdd(surfc,temp,datetimes)
-    SM = B0 + BS*slope_yr.data + BA*aspect_yr.data + BPD*pdd_ave.data + BSM*aveSINM_field.data + BAC*aveSND_field.data
+    pdd_ave = spline(surfc)
+    SM = B0 + BS*slope_yr.data + BA*aspect_yr.data + BPD*pdd_ave + BSM*aveSINM_field.data + BAC*aveSND_field.data
     surfc = (surfc+SM)*mask_arr
     ice_H = (ice_H+SM)*mask_arr
     ice_H[ice_H<=0]=np.nan
@@ -852,23 +854,24 @@ plt.close('all')
 # pdd_ave = pdd(surfc,temp,datetimes)
 surfc = rast_dat24_mask.data
 
-pdd_ave = avePDD_forward
-
-delArr = np.arange(start=0.7,stop=1.3,step=0.01)
+delArr = np.arange(start=0.5,stop=1.5,step=0.01)
 
 countMtx = np.zeros((len(delArr),len(delArr)))
 ELA = np.zeros((len(delArr),len(delArr)))
+MB = np.zeros((len(delArr),len(delArr)))
 
 slope_yr,aspect_yr=slope_aspect(surfc)
 
 for i in np.arange(len(delArr)):
-    SND_loop = aveSND_field.data*delArr[i]
-    # SND_loop = aveSND_field.data*1
     
+    temp_offset = temperature*delArr[i]
+    pdd_spline = pdd_ave_spline(surfc,temp_offset,datetimes)
+    pdd_loop = pdd_spline(surfc)
+
     for j in np.arange(len(delArr)):
-        pdd_loop = pdd_ave*delArr[j]
-        # pdd_loop = pdd_ave*0.8
         
+        SND_loop = aveSND_field.data*delArr[j]
+
         surfc = rast_dat24_mask.data
         ice_H = np.copy(rast_H)
         ice_H = rast_H.data
@@ -888,6 +891,9 @@ for i in np.arange(len(delArr)):
         dh_m = srf_new-srf_old
         nanMsk = ~np.isnan(srf_new)
         y = dh_m[nanMsk]
+        y_MB = np.copy(y)
+        y_MB[y_MB<0]*=0.917
+        y_MB[y_MB>0]*=0.41
         x = srf_new[nanMsk]
         coeffs = np.polyfit(x, y, deg=1)
         poly = np.poly1d(coeffs)
@@ -897,6 +903,7 @@ for i in np.arange(len(delArr)):
         # plt.close('all')
         # fig,ax=plt.subplots(figsize=(18,18))
         # ax.plot(x,y,'.')
+        # ax.plot(x,y_MB,'r.')
         # ax.plot(x_mod,SEC_grad)
         # plt.ylim([-6,2])
         # plt.xlim([1700, 2400])
@@ -905,7 +912,8 @@ for i in np.arange(len(delArr)):
         # plt.xlabel('Elevation (m)')
         # plt.title(f'delta = PDD*{delArr[j]:.2f}, delta = T*{delArr[i]:.2f}')
         # fig.savefig(r'C:\Users\jcrompto\Documents\code\python_scripts\mass_balance\figures\ELA_extrap.png')
-        ELA[i,j] = -coeffs[1]/coeffs[0]
+        ELA[j,i] = -coeffs[1]/coeffs[0]
+        MB[j,i]=np.cumsum(y_MB)[-1]/len(y_MB)
 
         # count += 1
         # sys.exit()
@@ -916,19 +924,34 @@ for i in np.arange(len(delArr)):
 
 # %% 
 plt.close('all')
+field = MB
 fig,ax = plt.subplots(figsize=(18,18))
-art=ax.imshow(np.flipud(ELA),extent=[delArr[0], delArr[-1], delArr[0], delArr[-1]])
-ax.contour((ELA),extent=[delArr[0], delArr[-1], delArr[0], delArr[-1]],colors='red')
-level = 2160
-contour = ax.contour((ELA),extent=[delArr[0], delArr[-1], delArr[0], delArr[-1]],levels = [level],colors='black',linewidth=2)
+art=ax.imshow(np.flipud(field),extent=[delArr[0], delArr[-1], delArr[0], delArr[-1]],cmap='jet_r')
+contours = ax.contour((field),extent=[delArr[0], delArr[-1], delArr[0], delArr[-1]],colors='k')
+# level = 2160
+# contour = ax.contour((field),extent=[delArr[0], delArr[-1], delArr[0], delArr[-1]],levels = [level],colors='black',linewidth=2)
 # ax.clabel(contours, fmt={level: f'Level {level:.2f}'}, colors='red')
 
 plt.xlabel('$\Delta$ T')
-plt.ylabel('$\Delta$ PDD')                            
+plt.ylabel('$\Delta$ P')     
+plt.title('Mass balance sensitivity ($\Delta$ P = 1.7$\Delta$ T)')                       
 cbar = fig.colorbar(art, ax=ax)
-cbar.set_label('Elevation of net zero balance (m)')
-plt.title('black line = elevation of top of glacier')
-fig.savefig(r'C:\Users\jcrompto\Documents\code\python_scripts\mass_balance\figures\ELA_contour.png')
+cbar.set_label('Integrated mass balance (m. w.e.)')
+level = 0
+contour = ax.contour((field),extent=[delArr[0], delArr[-1], delArr[0], delArr[-1]],levels = [level],colors='white',linewidth=5)
+
+
+# plt.title('black line = elevation of top of glacier')
+fig.savefig(r'C:\Users\jcrompto\Documents\code\python_scripts\mass_balance\figures\MB_contour.png')
+
+# %% compute the slope (sensitivity) of the field
+dx, dy = np.gradient(np.flipud(field))
+slope_dydx = np.divide(dy,dx)
+fig,ax = plt.subplots(figsize=(18,18))
+ax.imshow(slope_dydx)
+ave_slope = np.mean(slope_dydx[2:-2,2:-2])
+
+
 # %% functions 
 
 def slope_aspect(array):
@@ -974,31 +997,41 @@ def renormalize_beta_sklearn(model, X_mean, X_std, y_mean, y_std):
     
     return intercept_denorm, beta_denorm
 
-def pdd(zMap,temp,datetimes):
 
+def pdd_ave_spline(zMap,temp_loop,datetimes):
+    
+    plt.close('all')
+    zMap_r = zMap.ravel()
+    nanMsk = ~np.isnan(zMap_r)
+    z_vals = np.sort(zMap_r[nanMsk])
+    
     datetime_array = []
-    for i in np.arange(11):
+    for i in np.arange(10):
         datetime_array.append(datetime(year = 2014+i, month = 9, day = 30))
         
     lapse_t = -6/1000
-    t_cube = np.zeros((np.shape(zMap)[0],np.shape(zMap)[1],10))
-    for i in np.arange(10):
+    
+    t_Mtx = np.zeros((9,len(z_vals)))
+    
+    for i in np.arange(9):
         start_ti = datetime_array[i]
         end_ti = datetime_array[i+1]
         els_d = (datetimes>=start_ti)&(datetimes<=end_ti)
         els = np.where(els_d==True)
-        t_ij = np.zeros(np.shape(zMap)) 
+        t_ij = np.zeros(len(z_vals)) 
+        
         for j in np.arange(np.shape(els)[1]):
-            t_j = temp[els[0][j]]
-            lapse_tzj = lapse_t*(zMap-1550)+t_j
+            t_j = temp_loop[els[0][j]]
+            lapse_tzj = lapse_t*(z_vals-1550)+t_j
             lapse_tzj[lapse_tzj<0] = 0
             t_ij = t_ij + lapse_tzj
-            t_cube[:,:,i] = t_ij
-       
-    pdd_ave = np.nansum(t_cube,2)/10
-    plt.figure()
-    plt.imshow(pdd_ave)
-    return pdd_ave
+            t_Mtx[i,:] = t_ij.data
+    
+    pdd_mean = np.nanmean(t_Mtx,0)
+    
+    spline = UnivariateSpline(z_vals, pdd_mean, s=1)
+    return spline
+
 
 def get_jet(theMap):
     base_cmap = plt.get_cmap(theMap)
@@ -1007,3 +1040,5 @@ def get_jet(theMap):
     color_list[0] = [1, 1, 1, 0] 
     plasma_zero_cmap = mcolors.ListedColormap(color_list)
     return plasma_zero_cmap
+
+
