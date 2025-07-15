@@ -851,26 +851,28 @@ for yr in np.arange(lenSim):
 # %%
 plt.close('all')
 
+snow_density= 0.41
 # pdd_ave = pdd(surfc,temp,datetimes)
 surfc = rast_dat24_mask.data
 
-delArr = np.arange(start=0.5,stop=1.5,step=0.01)
+delArr_T = np.arange(start=-3,stop=3.05,step=0.05)
+delArr_P = np.arange(start=-3,stop=3.05,step=0.05)
 
-countMtx = np.zeros((len(delArr),len(delArr)))
-ELA = np.zeros((len(delArr),len(delArr)))
-MB = np.zeros((len(delArr),len(delArr)))
+
+ELA = np.zeros((len(delArr_P),len(delArr_T)))
+MB = np.zeros((len(delArr_P),len(delArr_T)))
 
 slope_yr,aspect_yr=slope_aspect(surfc)
 
-for i in np.arange(len(delArr)):
+for i in np.arange(len(delArr_T)):
     
-    temp_offset = temperature*delArr[i]
+    temp_offset = temperature+delArr_T[i]
     pdd_spline = pdd_ave_spline(surfc,temp_offset,datetimes)
     pdd_loop = pdd_spline(surfc)
 
-    for j in np.arange(len(delArr)):
+    for j in np.arange(len(delArr_P)):
         
-        SND_loop = aveSND_field.data*delArr[j]
+        SND_loop = aveSND_field.data+delArr_P[j]
 
         surfc = rast_dat24_mask.data
         ice_H = np.copy(rast_H)
@@ -893,7 +895,7 @@ for i in np.arange(len(delArr)):
         y = dh_m[nanMsk]
         y_MB = np.copy(y)
         y_MB[y_MB<0]*=0.917
-        y_MB[y_MB>0]*=0.41
+        y_MB[y_MB>0]*=snow_density
         x = srf_new[nanMsk]
         coeffs = np.polyfit(x, y, deg=1)
         poly = np.poly1d(coeffs)
@@ -925,31 +927,39 @@ for i in np.arange(len(delArr)):
 # %% 
 plt.close('all')
 field = MB
-fig,ax = plt.subplots(figsize=(18,18))
-art=ax.imshow(np.flipud(field),extent=[delArr[0], delArr[-1], delArr[0], delArr[-1]],cmap='jet_r')
-contours = ax.contour((field),extent=[delArr[0], delArr[-1], delArr[0], delArr[-1]],colors='k')
+fig,ax = plt.subplots(figsize=(24,18))
+from matplotlib.colors import TwoSlopeNorm
+
+# compute the slope (sensitivity) of the field
+dx, dy = np.gradient(np.flipud(field))
+slope_dydx = np.divide(dy,dx)
+# fig,ax = plt.subplots(figsize=(18,18))
+# ax.imshow(slope_dydx)
+ave_slope = np.mean(slope_dydx[2:-2,2:-2])
+
+norm = TwoSlopeNorm(vmin=-7, vcenter=0, vmax=1)
+
+art=ax.imshow(np.flipud(field),extent=[delArr_T[0], delArr_T[-1], delArr_P[0]*snow_density, delArr_P[-1]*snow_density],cmap='RdBu',norm = norm, aspect='auto')
+contours = ax.contour((field),extent=[delArr_T[0], delArr_T[-1], delArr_P[0]*snow_density, delArr_P[-1]*snow_density],colors='k',aspect='auto')
 # level = 2160
 # contour = ax.contour((field),extent=[delArr[0], delArr[-1], delArr[0], delArr[-1]],levels = [level],colors='black',linewidth=2)
 # ax.clabel(contours, fmt={level: f'Level {level:.2f}'}, colors='red')
 
-plt.xlabel('$\Delta$ T')
-plt.ylabel('$\Delta$ P')     
-plt.title('Mass balance sensitivity ($\Delta$ P = 1.7$\Delta$ T)')                       
-cbar = fig.colorbar(art, ax=ax)
-cbar.set_label('Integrated mass balance (m. w.e.)')
+plt.xlabel('$\Delta$ T ($^\circ$C)')
+plt.ylabel('$\Delta$ P (m. w.e.)')     
+# plt.title('Mass balance sensitivity ($\Delta$ P = {slope_dydx:.2f}$\Delta$ T)')                       
+
 level = 0
-contour = ax.contour((field),extent=[delArr[0], delArr[-1], delArr[0], delArr[-1]],levels = [level],colors='white',linewidth=5)
+contour = ax.contour((field),extent=[delArr_T[0], delArr_T[-1], delArr_P[0]*snow_density, delArr_P[-1]*snow_density],levels = [level],colors='white',aspect='auto')
+ax_pos = ax.get_position()
+cax = fig.add_axes([ax_pos.x1 + 0.01, ax_pos.y0, 0.03, ax_pos.height])
+cbar = plt.colorbar(art, cax=cax)
+cbar.set_label('Integrated mass balance (m. w.e.)')
 
 
 # plt.title('black line = elevation of top of glacier')
 fig.savefig(r'C:\Users\jcrompto\Documents\code\python_scripts\mass_balance\figures\MB_contour.png')
 
-# %% compute the slope (sensitivity) of the field
-dx, dy = np.gradient(np.flipud(field))
-slope_dydx = np.divide(dy,dx)
-fig,ax = plt.subplots(figsize=(18,18))
-ax.imshow(slope_dydx)
-ave_slope = np.mean(slope_dydx[2:-2,2:-2])
 
 
 # %% functions 
