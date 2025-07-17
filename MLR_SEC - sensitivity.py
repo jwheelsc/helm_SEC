@@ -4,6 +4,11 @@ Created on Wed Jul  9 15:00:33 2025
 
 @author: jcrompto
 
+This is largely the same script as MLR_SEC, but the data area masked over the 
+entire watershed catchment to allow the accumulation area to grow for 
+calculating the sensitivity to volumetric mass balance. The beta values neede
+to be computed first on the glacier mask in the MLR_SEC script
+
 all functions are at the bottom of the script
 
 """
@@ -50,11 +55,16 @@ labels  = data['label']
 xBounds = x[labels=='bd']
 yBounds = y[labels=='bd']
 z = data['ice_thickness'].to_numpy() + 0
-dat1  = data[['east','north', 'ice_thickness']].to_numpy()  
-min_x = x.min()
-max_x = x.max()
-min_y = y.min()
-max_y = y.max()
+dat1  = data[['east','north', 'ice_thickness']].to_numpy()
+# min_x = x.min()
+# max_x = x.max()
+# min_y = y.min()
+# max_y = y.max()
+
+min_x = 500395  # here are the limits of the watershed mask
+max_x = 501600
+min_y = 5533200
+max_y = 5534895
 
 bounds = [min_x, min_y, max_x, max_y]
 
@@ -68,7 +78,15 @@ rast_dat_marg = rast_dem_marg.data
 plt.close('all')
 fig,ax = plt.subplots(figsize=(18,18))
 ax.imshow(rast_dat_marg)
+# %% load the mask created from 2025 surface from polygon shapefile generated in Q
+filename = 'helm_watershed_mask.tif'
+# rast_dem = gu.Raster(filename,downsample=10)
+rast_dem_ws = gu.Raster(filename)
+rast_dem_ws.crop([min_x, min_y, max_x, max_y])
+rast_dat_ws = rast_dem_ws.data
 
+fig,ax = plt.subplots(figsize=(18,18))
+ax.imshow(rast_dat_ws)
 # %% Compute a slope and aspect from 10m downsampled DEMs. grid cells are only
 # considered for years prior to 2025 from within 2025 glacier margin
 
@@ -76,7 +94,7 @@ filename = 'DEM_2020.tif'
 rast_dem20 = gu.Raster(filename)
 rast_dem20.crop([min_x, min_y, max_x, max_y])
 rast_dat20 = rast_dem20.data
-rast_dat20_mask = rast_dat20*rast_dat_marg
+rast_dat20_mask = rast_dat20*rast_dat_ws
 rast_dat20_mask[rast_dat20_mask==0]=np.nan
 slope20, aspect20 =  slope_aspect(rast_dat20_mask)
 slim_mask = ~np.isnan(aspect20) # no slope is computed for boundary cells
@@ -85,14 +103,14 @@ s20_r = slope20.ravel(); a20_r = aspect20.ravel(); z20_r = z20.ravel()
 ravel_mask = ~np.isnan(a20_r)
 s20_rn = s20_r[ravel_mask]; a20_rn = a20_r[ravel_mask]; z20_rn = z20_r[ravel_mask];
 
-# fig,ax = plt.subplots(figsize=(18,18))
-# ax.imshow(slope20,cmap = 'jet')
+fig,ax = plt.subplots(figsize=(18,18))
+ax.imshow(slim_mask)
 
 filename = 'DEM_2021.tif'
 rast_dem21 = gu.Raster(filename)
 rast_dem21.crop([min_x, min_y, max_x, max_y])
 rast_dat21 = rast_dem21.data
-rast_dat21_mask = rast_dat21*rast_dat_marg
+rast_dat21_mask = rast_dat21*rast_dat_ws
 rast_dat21_mask[rast_dat21_mask==0]=np.nan
 slope21, aspect21 =  slope_aspect(rast_dat21_mask)
 slim_mask = ~np.isnan(aspect21)
@@ -105,7 +123,7 @@ filename = 'DEM_2022.tif'
 rast_dem22 = gu.Raster(filename)
 rast_dem22.crop([min_x, min_y, max_x, max_y])
 rast_dat22 = rast_dem22.data
-rast_dat22_mask = rast_dat22*rast_dat_marg
+rast_dat22_mask = rast_dat22*rast_dat_ws
 rast_dat22_mask[rast_dat22_mask==0]=np.nan
 slope22, aspect22 =  slope_aspect(rast_dat22_mask)
 slim_mask = ~np.isnan(aspect22)
@@ -120,7 +138,7 @@ filename = 'DEM_2023.tif'
 rast_dem23 = gu.Raster(filename)
 rast_dem23.crop([min_x, min_y, max_x, max_y])
 rast_dat23 = rast_dem23.data
-rast_dat23_mask = rast_dat23*rast_dat_marg
+rast_dat23_mask = rast_dat23*rast_dat_ws
 rast_dat23_mask[rast_dat23_mask==0]=np.nan
 slope23, aspect23 =  slope_aspect(rast_dat23_mask)
 slim_mask = ~np.isnan(aspect23)
@@ -135,7 +153,7 @@ filename = 'DEM_2024.tif'
 rast_dem24 = gu.Raster(filename)
 rast_dem24.crop([min_x, min_y, max_x, max_y])
 rast_dat24 = rast_dem24.data
-rast_dat24_mask = rast_dat24*rast_dat_marg
+rast_dat24_mask = rast_dat24*rast_dat_ws
 rast_dat24_mask[rast_dat24_mask==0]=np.nan
 slope24, aspect24 =  slope_aspect(rast_dat24_mask)
 slim_mask = ~np.isnan(aspect24)
@@ -143,103 +161,17 @@ z24 = rast_dat24_mask*slim_mask
 s24_r = slope24.ravel(); a24_r = aspect24.ravel(); z24_r = z24.ravel()
 s24_rn = s24_r[ravel_mask]; a24_rn = a24_r[ravel_mask]; z24_rn = z24_r[ravel_mask];
 
-
 # fig,ax = plt.subplots(figsize=(18,18))
 # ax.imshow(z24,cmap = 'jet')
 
-
-# %% import the dh maps 
-
-filename = 'dh_20_21.tif'
-rast_dh2021 = gu.Raster(filename)
-rast_dh2021.crop([min_x, min_y, max_x, max_y])
-rast_dh2021 = rast_dh2021.data
-rast_dh2021_mask = rast_dh2021*slim_mask
-dh2021_r = rast_dh2021_mask.ravel()
-dh2021_rn = dh2021_r[ravel_mask]
-
-fig,ax = plt.subplots(figsize=(18,18))
-art = ax.imshow(rast_dh2021_mask,cmap = 'jet_r')
-cbar = fig.colorbar(art, ax=ax)
-cbar.set_label('dh (m)')
-plt.title('dh 21/20')
-
-filename = 'dh_21_22.tif'
-rast_dh2122 = gu.Raster(filename)
-rast_dh2122.crop([min_x, min_y, max_x, max_y])
-rast_dh2122 = rast_dh2122.data
-rast_dh2122_mask = rast_dh2122*slim_mask
-dh2122_r = rast_dh2122_mask.ravel()
-dh2122_rn = dh2122_r[ravel_mask]
-
-fig,ax = plt.subplots(figsize=(18,18))
-ax.imshow(rast_dh2122_mask,cmap=cbar.cmap, vmin = cbar.vmin, vmax = cbar.vmax)
-cbar = fig.colorbar(art, ax=ax)
-cbar.set_label('dh (m)')
-plt.title('dh 22/21')
-
-filename = 'dh_22_23.tif'
-rast_dh2223 = gu.Raster(filename)
-rast_dh2223.crop([min_x, min_y, max_x, max_y])
-rast_dh2223 = rast_dh2223.data
-rast_dh2223_mask = rast_dh2223*slim_mask
-dh2223_r = rast_dh2223_mask.ravel()
-dh2223_rn = dh2223_r[ravel_mask]
-
-fig,ax = plt.subplots(figsize=(18,18))
-ax.imshow(rast_dh2223_mask,cmap=cbar.cmap, vmin = cbar.vmin, vmax = cbar.vmax)
-cbar = fig.colorbar(art, ax=ax)
-cbar.set_label('dh (m)')
-plt.title('dh 23/22')
-
-filename = 'dh_23_24.tif'
-rast_dh2324 = gu.Raster(filename)
-rast_dh2324.crop([min_x, min_y, max_x, max_y])
-rast_dh2324 = rast_dh2324.data
-rast_dh2324_mask = rast_dh2324*slim_mask
-dh2324_r = rast_dh2324_mask.ravel()
-dh2324_rn = dh2324_r[ravel_mask]
-
-fig,ax = plt.subplots(figsize=(18,18))
-ax.imshow(rast_dh2324_mask,cmap=cbar.cmap, vmin = cbar.vmin, vmax = cbar.vmax)
-cbar = fig.colorbar(art, ax=ax)
-cbar.set_label('dh (m)')
-plt.title('dh 24/23')
-
-filename = 'dh_24_25_w.tif' # this is the winter field
-rast_dh2425 = gu.Raster(filename)
-rast_dh2425.crop([min_x, min_y, max_x, max_y])
-rast_dh2425 = rast_dh2425.data
-rast_dh2425_mask = rast_dh2425*slim_mask
-dh2425_r = rast_dh2425_mask.ravel()
-dh2425w_rn = dh2425_r[ravel_mask]
-
-fig,ax = plt.subplots(figsize=(18,18))
-art = ax.imshow(rast_dh2425_mask,cmap='jet')
-cbar = fig.colorbar(art, ax=ax)
-cbar.set_label('dh (m)')
-plt.title('dh 24/45_w')
-
-# %% average the geodetic balance
-
-melt_cube = np.zeros((np.shape(rast_dh2324_mask)[0],np.shape(rast_dh2324_mask)[1],4))
-
-melt_cube[:,:,0] = rast_dh2021_mask
-melt_cube[:,:,1] = rast_dh2122_mask
-melt_cube[:,:,2] = rast_dh2223_mask
-melt_cube[:,:,3] = rast_dh2324_mask
-
-ave_melt = (rast_dh2021*rast_dat_marg+rast_dh2122*rast_dat_marg+rast_dh2223*rast_dat_marg+rast_dh2324*rast_dat_marg)/4
-# plt.close('all')
-# plt.figure()
-# plt.imshow(ave_melt)
-
 # %% load this ice thickness data
 filename = 'helm_H_IPR.tif'
-rast_H = gu.Raster(filename)
-rast_H.crop([min_x, min_y, max_x, max_y])
-rast_H = rast_H.data
-rast_H = rast_H*rast_dat_marg
+rast_HR = gu.Raster(filename)
+rast_HR.crop([min_x, min_y, max_x, max_y])
+rast_H = rast_HR.data*rast_dat_marg.data
+
+fig,ax = plt.subplots(figsize=(18,18))
+ax.imshow(rast_H)
 
 # %% read in the masked yearly shortwave radiation fields
 plt.close('all')
@@ -377,6 +309,30 @@ file_path = 'helm_era5_2000_2024.xlsx'
 df = pd.read_excel(file_path)
 datetimes = df.timestamp
 temperature = df.temperature-273.15
+
+
+# %% loop through some temperature statistics
+# yrs= np.arange(2000,2024)
+
+plt.close('all')
+mean_sT = []
+for y in np.arange(len(yrs)):
+    mask = []
+    for i in np.arange(len(datetimes)):
+        t = datetimes[i]
+        mask.append((t.year==yrs[y]) and (4 < t.month < 10))
+        # sys.exit()
+    temps = temperature[mask]
+    mean_sT.append(np.mean(temps))
+
+y = np.array(mean_sT)
+yG = lapse_t*(1934-1550)+y
+plt.plot(yG)
+x = np.arange(len(mean_sT))
+coeffs = np.polyfit(x, yG, deg=1)
+poly = np.poly1d(coeffs)
+delTemp = poly(x)
+plt.plot(x,delTemp)
 
 # %% compute the PDD for each year of 2021--2024 with the ravelled elevation surface
 # and the ERA5 land temperature between the dates of the lidar acquisition periods
@@ -530,406 +486,113 @@ plt.title('PDD 2024')
 aveSINM_field = (SINM_21_dat_field + SINM_22_dat_field + SINM_23_dat_field + SINM_24_dat_field)/4
 aveSND_field = (sd21_field + sd22_field + sd23_field + sd24_field)/4
 
-# %% create the design matrix with slope, aspect, PDDs, masked radiation and snow depth
 
-# shortwave ,SWM_rn, snow depth = sd21_rn
-X21  = np.vstack((s21_rn,a21_rn,t_zji[:,0],SINM_21_rn,sd21_rn))
-X22  = np.vstack((s22_rn,a22_rn,t_zji[:,1],SINM_22_rn,sd22_rn))
-X23  = np.vstack((s23_rn,a23_rn,t_zji[:,2],SINM_23_rn,sd23_rn))
-X24  = np.vstack((s24_rn,a24_rn,t_zji[:,3],SINM_24_rn,sd24_rn))
-
-X = (np.hstack((X21,X22,X23,X24))).T
-Y = (np.hstack((dh2021_rn, dh2122_rn,dh2223_rn,dh2324_rn))).T
-
-model = LinearRegression().fit(X.data, Y.data)
-
-B0 = model.intercept_
-BS = model.coef_[0]
-BA = model.coef_[1]
-BPD = model.coef_[2]
-BSM = model.coef_[3]
-BAC = model.coef_[4]
-
-
-# %% compute statistical significance of beta values with standardized variables
-X_std, X_mean, X_std_vals = standardize_columns(X)
-Y_std, y_mean, y_std = standardize_columns(Y.reshape(-1, 1))
-Y_std = Y_std.flatten()
-X_with_const = sm.add_constant(X_std)  # add a constant to the regression to get significance
-
-model = sm.OLS(Y_std, X_with_const)
-results = model.fit()
-
-print(results.summary())
-
-corX = np.cov(X_std.T)
-
-# %% apply coefficients to each year of raster data
-
-SM2021 = B0 + BS*slope21 + BA*aspect21 + BPD*pdd21 + BSM*SINM_21_dat_field + BAC*sd21_field
-SM2122 = B0 + BS*slope22 + BA*aspect22 + BPD*pdd22 + BSM*SINM_22_dat_field + BAC*sd22_field
-SM2223 = B0 + BS*slope23 + BA*aspect23 + BPD*pdd23 + BSM*SINM_23_dat_field + BAC*sd23_field
-SM2324 = B0 + BS*slope24 + BA*aspect24 + BPD*pdd24 + BSM*SINM_24_dat_field + BAC*sd24_field
-
-# coefficients
-print("Intercept:", model.intercept_)
-print("Coefficients:", model.coef_)
-
-# %%
-plt.close('all')
-plt.rcParams.update({'font.size': 32})
-
-fig,ax = plt.subplots(nrows=1,ncols=4,figsize=(38,20))
-
-for i in np.arange(4):
-    
-    if i == 0:
-        z = z21_rn
-        dat_r = rast_dh2021_mask.ravel()
-        dat_rn = dat_r[ravel_mask]
-        sim_r = SM2021.ravel()
-        sim_rn = sim_r[ravel_mask]
-        title_lab = '2020-2021'
-    if i == 1:
-        z = z22_rn
-        dat_r = rast_dh2122_mask.ravel()
-        dat_rn = dat_r[ravel_mask]
-        sim_r = SM2122.ravel()
-        sim_rn = sim_r[ravel_mask]
-        title_lab = '2021-2022'
-
-    if i == 2:
-        z = z23_rn
-        dat_r = rast_dh2223_mask.ravel()
-        dat_rn = dat_r[ravel_mask]
-        sim_r = SM2223.ravel()
-        sim_rn = sim_r[ravel_mask]
-        title_lab = '2022-2023'
-
-    if i == 3:
-        z = z24_rn
-        dat_r = rast_dh2324_mask.ravel()
-        dat_rn = dat_r[ravel_mask]
-        sim_r = SM2324.ravel()
-        sim_rn = sim_r[ravel_mask]
-        title_lab = '2023-2024'
-
-        
-    r2 = compute_r_squared(dat_rn, sim_rn)
-    art = ax[i].plot(z,dat_rn,'k.',label='observations')
-    ax[i].set_title(title_lab)
-
-    
-    ax[i].plot(z,sim_rn,'r.',label='model',alpha=0.4)
-    ax[i].set_title(title_lab)
-
-    ax[i].text(0.05, 0.95, f'R$^2$ = {r2:.2f}', transform=ax[i].transAxes,
-                fontsize=28, color='white', bbox=dict(facecolor='black', alpha=0.5))
-    ax[i].grid()
-    plt.legend(loc='lower left')
-    ax[i].set_xlabel('Elevation (m)', fontsize = 34)
-    if i == 0:
-        ax[i].set_ylabel('Elevation change (m)', fontsize = 34)
-    ax[i].set_ylim(-8,4)
-    
-
-plt.show()
-
-# %% same as the section above, but plotting in 2d with elevation, BINNED
-plt.close('all')
-plt.rcParams.update({'font.size': 32})
-
-fig,ax = plt.subplots(nrows=1,ncols=4,figsize=(36,20))
-
-
-for i in np.arange(4):
-    
-    if i == 0:
-        z = z20_rn
-        dat_r = rast_dh2021_mask.ravel()
-        dat_rn = dat_r[ravel_mask]
-        sim_r = SM2021.ravel()
-        sim_rn = sim_r[ravel_mask]
-        title_lab = 'dh 21/20'
-    if i == 1:
-        z = z21_rn
-        dat_r = rast_dh2122_mask.ravel()
-        dat_rn = dat_r[ravel_mask]
-        sim_r = SM2122.ravel()
-        sim_rn = sim_r[ravel_mask]
-        title_lab = 'dh 22/21'
-
-    if i == 2:
-        z = z22_rn
-        dat_r = rast_dh2223_mask.ravel()
-        dat_rn = dat_r[ravel_mask]
-        sim_r = SM2223.ravel()
-        sim_rn = sim_r[ravel_mask]
-        title_lab = 'dh 23/22'
-
-    if i == 3:
-        z = z23_rn
-        dat_r = rast_dh2324_mask.ravel()
-        dat_rn = dat_r[ravel_mask]
-        sim_r = SM2324.ravel()
-        sim_rn = sim_r[ravel_mask]
-        title_lab = 'dh 24/23'
-
-        
-    r2 = compute_r_squared(dat_rn, sim_rn)
-    
-    midZ = []
-    dat_rnBn = []
-    sim_rnBn = []
-    dat_rnSt = []
-    sim_rnSt = []
-    zBin = np.arange(1750,2150+50,50)
-    for k in np.arange(len(zBin)-1):
-        ll = zBin[k]
-        ul = zBin[k+1]
-        elsIn = np.multiply((z>ll),(z<=ul))
-        midZ.append((ul+ll)/2)
-        dat_rnBn.append(np.mean(dat_rn[elsIn]))
-        sim_rnBn.append(np.mean(sim_rn[elsIn]))
-        dat_rnSt.append(np.std(dat_rn[elsIn]))
-        sim_rnSt.append(np.std(sim_rn[elsIn]))
-    
-    # art = ax[i].plot(z,dat_rn,'k.',label='observations')
-    ax[i].plot(midZ,dat_rnBn,'k+')
-    for j in np.arange(len(midZ)):
-        ax[i].plot([midZ[j],midZ[j]],[dat_rnBn[j]-dat_rnSt[j],dat_rnBn[j]+dat_rnSt[j]],'k-',linewidth=6)
-    if i ==3:
-        ax[i].plot([midZ[0],midZ[0]],[dat_rnBn[0]-dat_rnSt[0],dat_rnBn[0]+dat_rnSt[0]],'k-',linewidth=6,label='obsevrations')
- 
-
-    
-    # ax[i].plot(z,sim_rn,'r.',label='model')
-    ax[i].plot(midZ,sim_rnBn,'r+')
-    for j in np.arange(len(midZ)):
-        ax[i].plot([midZ[j],midZ[j]],[sim_rnBn[j]-sim_rnSt[j],sim_rnBn[j]+sim_rnSt[j]],'r-',linewidth=3)
-    ax[i].set_title(title_lab)
-    ax[i].set_ylim(-8,4)
-
-    ax[i].text(0.05, 0.95, f'R-square = {r2:.2f}', transform=ax[i].transAxes,
-                fontsize=20, color='white', bbox=dict(facecolor='black', alpha=0.5))
-    ax[i].grid()
-    ax[i].set_xlabel('Elevation (m)')
-    ax[i].set_ylabel('dh (m)')
-    if i==3:
-        ax[i].plot([midZ[0],midZ[0]],[sim_rnBn[0]-sim_rnSt[0],sim_rnBn[0]+sim_rnSt[0]],'r-',linewidth=3,label='model')
-        plt.legend(loc='lower left')
-    
-
-plt.show()
-
-# %% plot modelled and simulated
-plt.close('all')
-
-fig,ax = plt.subplots(nrows=2,ncols=4,figsize=(36,24))
-
-a = [0,0,0,0]
-b = [0,1,2,3]
-# a = [0,0,0]
-# b = [0,1,2]
-
-for i in np.arange(4):
-    
-    if i == 0:
-        dat = rast_dh2021_mask
-        sim = SM2021
-        title_lab = 'dh 21/20'
-    if i == 1:
-        dat = rast_dh2122_mask
-        sim = SM2122
-        title_lab = 'dh 22/21'
-
-    if i == 2:
-        dat = rast_dh2223_mask
-        sim = SM2223
-        title_lab = 'dh 23/22'
-
-    if i == 3:
-        dat = rast_dh2324_mask
-        sim = SM2324
-        title_lab = 'dh 24/23'
-
-        
-    r2 = compute_r_squared(dat, sim)
-    art = ax[a[i],b[i]].imshow(dat,cmap = 'jet_r', vmin = -7.5, vmax = 0)
-    ax[a[i],b[i]].set_title(title_lab)
-    ax[a[i],b[i]].set_yticklabels([])
-    ax[a[i],b[i]].set_xticklabels([])
-    
-    ax[a[i]+1,b[i]].imshow(sim,cmap = 'jet_r', vmin = -7.5, vmax = 0)
-    ax[a[i]+1,b[i]].set_title('simulated')
-    ax[a[i]+1,b[i]].set_yticklabels([])
-    ax[a[i]+1,b[i]].set_xticklabels([])
-    ax[a[i]+1,b[i]].text(0.05, 0.95, f'R-square = {r2:.2f}', transform=ax[a[i]+1,b[i]].transAxes,
-                fontsize=20, color='white', bbox=dict(facecolor='black', alpha=0.5))
-
-cbar = fig.colorbar(art, ax=ax)
-cbar.set_label('dh (m)')
-plt.show()
-
-
-# %% plot difference maps
-plt.close('all')
-
-fig,ax = plt.subplots(nrows=1,ncols=4,figsize=(36,24))
-
-a = [0,0,0,0]
-b = [0,1,2,3]
-# a = [0,0,0]
-# b = [0,1,2]
-
-for i in np.arange(4):
-    
-    if i == 0:
-        dat = rast_dh2021_mask
-        sim = SM2021
-        title_lab = 'dh 21/20'
-    if i == 1:
-        dat = rast_dh2122_mask
-        sim = SM2122
-        title_lab = 'dh 22/21'
-
-    if i == 2:
-        dat = rast_dh2223_mask
-        sim = SM2223
-        title_lab = 'dh 23/22'
-
-    if i == 3:
-        dat = rast_dh2324_mask
-        sim = SM2324
-        title_lab = 'dh 24/23'
-
-        
-    r2 = compute_r_squared(dat, sim)
-    art = ax[i].imshow(sim-dat,cmap = 'jet_r', vmin = -3, vmax = 3)
-    ax[i].set_title(title_lab)
-    ax[i].set_yticklabels([])
-    ax[i].set_xticklabels([])
-    ax[i].text(0.05, 0.95, f'R-square = {r2:.2f}', transform=ax[i].transAxes,
-                fontsize=20, color='white', bbox=dict(facecolor='black', alpha=0.5))
-
-cbar = fig.colorbar(art, ax=ax)
-cbar.set_label('dh (m)')
-plt.show()
-
-# %% run the forward model
-
-plt.close('all')
-# starting from the 20 surface with no snow
-surfc = rast_dat24_mask.data
-ice_H = np.copy(rast_H)
-ice_H = rast_H.data
-ice_H[ice_H==255]=0
-# pdd_ave = pdd(surfc,temp,datetimes)
-# pdd_ave = avePDD_forward
-pdd_spline = pdd_ave_spline(surfc,temperature,datetimes)
-pdd_ave = spline(surfc)
-nRows = int(2)
-nCols = int(6)
-lenSim = nCols*nRows
-yr_sim = np.arange(lenSim+1)+2024
-V = np.zeros(lenSim+1)
-A = np.zeros(lenSim+1)
-V[0] = np.sum(ice_H*100)
-A[0] = np.sum((ice_H>0)*100)
-ice_H_mtx = np.zeros((np.shape(ice_H)[0],np.shape(ice_H)[1],lenSim+1))
-ice_H_mtx[:,:,0]=ice_H
-for yr in np.arange(lenSim):
-    slope_yr,aspect_yr=slope_aspect(surfc)
-    mask_arr = (slope_yr!=0).astype('int')
-    pdd_ave = spline(surfc)
-    SM = B0 + BS*slope_yr.data + BA*aspect_yr.data + BPD*pdd_ave + BSM*aveSINM_field.data + BAC*aveSND_field.data
-    surfc = (surfc+SM)*mask_arr
-    ice_H = (ice_H+SM)*mask_arr
-    ice_H[ice_H<=0]=np.nan
-    # if yr==0:
-    ice_H_mtx[:,:,yr+1] = np.copy(ice_H)
-    fig,ax = plt.subplots(figsize=(18,18))
-    ax.imshow(ice_H,cmap = 'jet')
-    A[yr+1] = np.sum(np.multiply((ice_H!=0),~np.isnan(ice_H)))*100
-    
-# %% Mass balance sensitivity for specific and volumetric mass balance computed 
-# over the 2024 reference surface 
+# %% Mass balance sensitivity, which requires allowing the glacier to grow where the net 
+# elevation change from the model is positive. As such, the .tif files need to be masked with 
+# the watershed mask rather than the glacier mask used to compute the MLR. In this section 
+# the .tif are remasked before carrying out the sensitivity
 
 snow_density= 0.41
-surfc = rast_dat24_mask.data
+ice_density = 0.917
+# pdd_ave = pdd(surfc,temp,datetimes)
 
-delArr_T = np.arange(start=-8,stop=2,step=0.5)
-delArr_P = np.arange(start=-2,stop=4,step=0.5)
 
-mean_acc = 1.65/0.41 #(mean depth over entire glacier averaged over 4 years divided by mena density)
-mean_tem = 7.13
+delArr_T = np.arange(start=-8,stop=1,step=0.2)
+delArr_P = np.arange(start=-1,stop=4,step=0.2)
 
-# delArr_T = np.arange(start=-0.5,stop=0.52,step=0.02)
-# delArr_P = np.arange(start=-0.5,stop=0.52,step=0.02)
+# delArr_T = [-2]
+# delArr_P = [1]
 
 ELA = np.zeros((len(delArr_P),len(delArr_T)))
-SMB_RS = np.zeros((len(delArr_P),len(delArr_T)))
-VMB_RS = np.zeros((len(delArr_P),len(delArr_T)))
+SMB_AC = np.zeros((len(delArr_P),len(delArr_T))) # specific mass balance rate allowing the area to change
+VMB_AC = np.zeros((len(delArr_P),len(delArr_T))) # volumetric mass balance rate allowing the area to change
 
-slope_yr,aspect_yr=slope_aspect(surfc)
+surfc = rast_dat24_mask.data
+surf_r = surfc.ravel()
+slope_2024,aspect_2024=slope_aspect(surfc)
+marg_r = rast_dat_marg.ravel()
+
 
 for i in np.arange(len(delArr_T)):
     
-    temp_offset = temperature+(delArr_T[i])
+    temp_offset = temperature+delArr_T[i]
     pdd_spline = pdd_ave_spline(surfc,temp_offset,datetimes)
     pdd_loop = pdd_spline(surfc)
 
     for j in np.arange(len(delArr_P)):
         
-        SND_loop = aveSND_field.data+(delArr_P[j])
+        SND_loop = aveSND_field.data+delArr_P[j]
 
-        surfc = rast_dat24_mask.data
-
-        # srf_old = surfc.ravel()
-        mask_arr = (slope_yr!=0).astype('int')
-        # pdd_ave = pdd(surfc,temperature,datetimes)
-        SM = B0 + BS*slope_yr.data + BA*aspect_yr.data + BPD*pdd_loop+ BSM*aveSINM_field.data + BAC*SND_loop
-
-        # srf_new = surfc.ravel()
-        sf_r = surfc.ravel()
-        dh_m = SM.ravel()
-        nanMsk = ~np.isnan(dh_m)
-        y = dh_m[nanMsk]
-        y_MB = np.copy(y)
-        y_MB[y_MB<0]*=0.917
-        y_MB[y_MB>0]*=snow_density
-        x = sf_r[nanMsk]
-        coeffs = np.polyfit(x, y, deg=1)
-        poly = np.poly1d(coeffs)
-        x_mod = np.array([1750, 2300])
-        SEC_grad = poly(x_mod)
+        mask_arr = (slope_2024!=0).astype('int')
+        SM = B0 + BS*slope_2024.data + BA*aspect_2024.data + BPD*pdd_loop+ BSM*aveSINM_field.data + BAC*SND_loop
+        SM_r = SM.ravel()
+        
+        neg_in_ice = np.multiply(SM<0,rast_dat_marg)
+        pos_in_ws = np.multiply(SM,(SM>0))
         
         # plt.close('all')
         # fig,ax=plt.subplots(figsize=(18,18))
-        # ax.plot(x,y,'.')
-        # ax.plot(x,y_MB,'r.')
-        # ax.plot(x_mod,SEC_grad)
-        # plt.ylim([-6,2])
-        # plt.xlim([1700, 2400])
-        # plt.grid()
-        # plt.ylabel('Elevation change (m)')
+        melt_on_ice = SM*neg_in_ice
+        z_melt_on_ice = surfc*neg_in_ice
+        z_acc_in_basin = surfc*(SM>0)
+        # ax.imshow(melt_on_ice,cmap = 'autumn')
+        winter_0 = get_jet('winter')
+        # ax.imshow(pos_in_ws,cmap = winter_0)
+        
+        zm_rv = z_melt_on_ice.ravel()
+        m_rv = melt_on_ice.ravel()
+        maskOut_0M = (m_rv!=0)
+        zm = zm_rv[maskOut_0M]
+        mwe_ice_melt = (m_rv[maskOut_0M])*ice_density
+        m_nan = ~np.isnan(mwe_ice_melt)
+        mwe_m = mwe_ice_melt[m_nan]
+        z_m = zm[m_nan]
+        
+        za_rv = z_acc_in_basin.ravel()
+        a_rv = pos_in_ws.ravel()
+        maskOut_0A = (a_rv!=0)
+        za = za_rv[maskOut_0A]
+        mwe_snow_acc = (a_rv[maskOut_0A])*snow_density
+        a_nan = ~np.isnan(mwe_snow_acc)
+        mwe_a = mwe_snow_acc[a_nan]
+        z_a = za[a_nan]
+        
+        if len(np.cumsum(mwe_m))>0:
+            total_melt = np.cumsum(mwe_m)[-1]*(10**2)
+            specific_melt = np.cumsum(mwe_m)[-1]/len(mwe_m)
+        else:
+            total_melt=0
+            specific_melt=0
+            
+        if len(np.cumsum(mwe_a))>0:
+            total_acc = np.cumsum(mwe_a)[-1]*(10**2)
+            specific_acc = np.cumsum(mwe_a)[-1]/len(mwe_a)
+        else: 
+            total_acc=0
+            specific_acc=0
+        VMB_AC[j,i] = total_melt+total_acc
+        SMB_AC[j,i] = specific_melt+specific_acc
+        
+        # fig,ax=plt.subplots(figsize=(18,18))
+        # ax.plot(z_m,mwe_m,'r.',label='melt on glacier')
+        # ax.plot(z_a,mwe_a,'b.',label='accumulation in basin')
+        # plt.title(f'$\Delta$T=-2$^\circ$C, $\Delta$P=0.41 m w.e.')
+        # plt.ylabel('Surface change (m w.e.)')
         # plt.xlabel('Elevation (m)')
-        # plt.title(f'delta = PDD*{delArr[j]:.2f}, delta = T*{delArr[i]:.2f}')
-        # fig.savefig(r'C:\Users\jcrompto\Documents\code\python_scripts\mass_balance\figures\ELA_extrap.png')
-        ELA[j,i] = -coeffs[1]/coeffs[0]
-        SMB_RS[j,i]=np.cumsum(y_MB)[-1]/len(y_MB)
-        VMB_RS[j,i]=np.cumsum(y_MB)[-1]*(10**2)
+        # plt.legend(loc='lower right')
+        # plt.text(1820,2.2,f'M.B. = {MB:.2f} m. w.e.')
+        # plt.grid()
+        # fig.savefig(r'C:\Users\jcrompto\Documents\code\python_scripts\mass_balance\figures\2D_sensitivity.png')
+        
+        
+        
 
-        # count += 1
-        # sys.exit()
-        # print(A)
-        # countMtx[i,j]=count
-        # sys.exit()
+
 
 
 # %% 
 plt.close('all')
-field = SMB_RS
+field = VMB_AC
 fig,ax = plt.subplots(figsize=(26,14))
 plt.rcParams.update({'font.size': 36})
 
@@ -960,7 +623,7 @@ CPpcm = C_P_pc[midpoint]
 
 ave_slope = np.mean(slope_dydx[2:-2,2:-2])
 
-norm = TwoSlopeNorm(vmin=-8, vcenter=0, vmax=1)
+norm = TwoSlopeNorm(vmin=-3e6, vcenter=0, vmax=2e6)
 
 extnt_mwe = [delArr_T[0], delArr_T[-1], delArr_P[0]*0.41, delArr_P[-1]*0.41]
 extnt_P = [delArr_T[0]/mean_tem*100, delArr_T[-1]/mean_tem*100, (delArr_P[0]*0.41)/mean_acc*100, (delArr_P[-1]*0.41)/mean_acc*100]
@@ -969,24 +632,25 @@ ext = extnt_P
 
 art=ax.imshow(np.flipud(field),extent=ext,cmap='RdBu',norm = norm,aspect='auto')
 
-# plt.xlabel('$\Delta$ T ($^\circ$C)')
-# plt.ylabel('$\Delta$ P (m w.e.)')     
-plt.xlabel('$\Delta$ T (% of mean summer temperature)')
-plt.ylabel('$\Delta$ P (% of mean winter accumulation)')   
+plt.xlabel('$\Delta$ T ($^\circ$C)')
+plt.ylabel('$\Delta$ P (m w.e.)')     
+# plt.xlabel('$\Delta$ T (% of mean summer temperature)')
+# plt.ylabel('$\Delta$ P (% of mean winter accumulation)')   
 
 ax.plot(0,0,'ks',markersize=10)
-levels_c = np.arange(-8,1)
+levels_c = np.array([-3e6,-2.5e6,-2e6,-1.5e6,-1e6,-0.5e6,0,0.5e6,1e6,1.5e6,2e6])
 contours = ax.contour((field),extent=ext,levels=levels_c,colors='k',aspect='auto')
 ax_pos = ax.get_position()
 cax = fig.add_axes([ax_pos.x1 + 0.01, ax_pos.y0, 0.03, ax_pos.height])
 cbar = plt.colorbar(art, cax=cax)
-cbar.set_label('Specific mass balance (m w.e.)')
+cbar.set_label('Mass balance (m$^3$ w.e.)')
 
 
 # plt.title('black line = elevation of top of glacier')
 # fig.savefig(r'C:\Users\jcrompto\Documents\code\python_scripts\mass_balance\figures\MB_contour_refS_fraction.png')
-# fig.savefig(r'C:\Users\jcrompto\Documents\code\python_scripts\mass_balance\figures\SMB_contour_refS_pc.pdf')
-# fig.savefig(r'C:\Users\jcrompto\Documents\code\python_scripts\mass_balance\figures\SMB_contour_refS_pc.svg')
+# fig.savefig(r'C:\Users\jcrompto\Documents\code\python_scripts\mass_balance\figures\VMB_contour_AC.pdf')
+# fig.savefig(r'C:\Users\jcrompto\Documents\code\python_scripts\mass_balance\figures\VMB_contour_AC.svg')
+
 
 
 
